@@ -1,4 +1,3 @@
-// tests/createQuestion.test.ts
 import request from "supertest";
 import app from "../src/app";
 import { MCQRequest, MCQUpdateRequest } from "../src/types/question.types";
