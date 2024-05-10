@@ -16,37 +16,33 @@ const createQuestion = async (
   req: Request<{}, {}, MCQRequest>,
   res: Response
 ) => {
-  const mcqRequestObj: MCQRequest = req.body;
-  const isRequestValid = validator.validate(
-    mcqRequestObj,
-    questionCreateSchema,
-    {
-      allowUnknownAttributes: false,
+  try {
+    const mcqRequestObj: MCQRequest = req.body;
+    const isRequestValid = validator.validate(
+      mcqRequestObj,
+      questionCreateSchema,
+      {
+        allowUnknownAttributes: false,
+      }
+    );
+    if (!isRequestValid.valid) {
+      throw new Error(isRequestValid.errors[0].message);
     }
-  );
-  if (!isRequestValid.valid) {
-    res
-      .status(400)
-      .send(getResponseObject(400, isRequestValid.errors[0].message, null));
+    const response = await questionService.createMCQ(mcqRequestObj);
+    res.status(201).json(getResponseObject(201, null, response));
+  } catch (err) {
+    res.status(400).send(getResponseObject(400, err.message, null));
     return;
   }
-  const response = await questionService.createMCQ(mcqRequestObj);
-  res.status(201).json(getResponseObject(201, null, response));
 };
 
 const getAllQuestions = async (
   req: Request<{}, {}, {}, { userType: UserType }>,
   res: Response
 ) => {
-  try {
-    const { userType } = req.query;
-    const response = await questionService.getAllQuestions(
-      userType || "VIEWER"
-    );
-    res.status(200).json(getResponseObject(200, null, response));
-  } catch (error) {
-    res.status(500).json(getResponseObject(500, error.message, null));
-  }
+  const { userType } = req.query;
+  const response = await questionService.getAllQuestions(userType || "VIEWER");
+  res.status(200).json(getResponseObject(200, null, response));
 };
 
 const updateQuestion = async (
@@ -63,33 +59,23 @@ const updateQuestion = async (
       }
     );
     if (!isRequestValid.valid) {
-      res
-        .status(400)
-        .send(getResponseObject(400, isRequestValid.errors[0].message, null));
-      return;
+      throw new Error(isRequestValid.errors[0].message);
     }
     const response = await questionService.updateQuestion(mcqUpdateRequest);
-    if (!response) {
-      res.status(400).send(getResponseObject(400, "Question not found", null));
-      return;
-    }
     res.status(200).send(getResponseObject(200, null, response));
   } catch (error) {
-    res.status(500).json(getResponseObject(500, error.message, null));
+    res.status(400).json(getResponseObject(400, error.message, null));
   }
 };
 
 const deleteQuestion = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const deleted = await questionService.deleteQuestion(id);
-    if (!deleted) {
-      res.status(400).send(getResponseObject(400, "Question not found", null));
-      return;
-    }
+    await questionService.deleteQuestion(id);
+
     res.status(200).send(getResponseObject(200, null, ""));
   } catch (error) {
-    res.status(500).json(getResponseObject(500, error.message, null));
+    res.status(400).json(getResponseObject(400, error.message, null));
   }
 };
 
@@ -100,13 +86,16 @@ const getAIQuestions = async (
   try {
     const { prompt } = req.query;
     if (!prompt || prompt === "") {
-      res.status(400).send(getResponseObject(400, "Prompt is required", null));
-      return;
+      throw new Error("Prompt is required");
     }
-    const response = await questionService.generateQuestionUsingAI(prompt);
-    res.status(200).send(getResponseObject(200, null, response));
+    try {
+      const response = await questionService.generateQuestionUsingAI(prompt);
+      res.status(200).send(getResponseObject(200, null, response));
+    } catch (error) {
+      res.status(500).json(getResponseObject(500, error.message, null));
+    }
   } catch (error) {
-    res.status(500).json(getResponseObject(500, error.message, null));
+    res.status(400).json(getResponseObject(400, error.message, null));
   }
 };
 

@@ -8,6 +8,7 @@ import {
 import { v4 as uuid } from "uuid";
 import dotenv from "dotenv";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { validateOptions } from "../util";
 
 dotenv.config();
 
@@ -15,6 +16,9 @@ const genAI = new GoogleGenerativeAI(process.env.API_KEY);
 
 const createMCQ = async (mcq: MCQRequest) => {
   const id = uuid();
+  if (!validateOptions(mcq.options)) {
+    throw new Error("Invalid options");
+  }
   await redisClient.set(`tiptap_mcq:${id}`, JSON.stringify({ ...mcq, id }));
   return {
     ...mcq,
@@ -46,7 +50,10 @@ const updateQuestion = async (mcq: MCQUpdateRequest) => {
   const id = mcq.id;
   const response = await redisClient.get(`tiptap_mcq:${id}`);
   if (!response) {
-    return null;
+    throw new Error("Question not found");
+  }
+  if (!validateOptions(mcq.options)) {
+    throw new Error("Invalid options");
   }
   await redisClient.set(`tiptap_mcq:${id}`, JSON.stringify(mcq));
   return mcq;
@@ -55,10 +62,9 @@ const updateQuestion = async (mcq: MCQUpdateRequest) => {
 const deleteQuestion = async (id: string) => {
   const response = await redisClient.get(`tiptap_mcq:${id}`);
   if (!response) {
-    return false;
+    throw new Error("Unable to delete question");
   }
   await redisClient.del(`tiptap_mcq:${id}`);
-  return true;
 };
 
 const generateQuestionUsingAI = async (prompt: string) => {
@@ -72,7 +78,7 @@ const generateQuestionUsingAI = async (prompt: string) => {
     const json = JSON.parse(text);
     return json;
   } catch (err) {
-    console.error(err);
+    throw new Error("Unable to generate question");
   }
 };
 

@@ -4,6 +4,13 @@ import app from "../src/app";
 import { MCQRequest, MCQUpdateRequest } from "../src/types/question.types";
 import redisClient, { disconnectRedisClient } from "../src/redisClient";
 
+const defaultOptions = [
+  { option: "Paris", isCorrect: true },
+  { option: "New Delhi", isCorrect: false },
+  { option: "London", isCorrect: false },
+  { option: "Madrid", isCorrect: false },
+];
+
 describe("Test Question lifecycle", () => {
   let questionId = "";
   afterAll(async () => {
@@ -13,12 +20,7 @@ describe("Test Question lifecycle", () => {
   it("should validate request and create a question", async () => {
     const questionData: MCQRequest = {
       question: "What is the capital of France?",
-      options: [
-        { option: "Paris", isCorrect: true },
-        { option: "Berlin", isCorrect: false },
-        { option: "London", isCorrect: false },
-        { option: "Madrid", isCorrect: false },
-      ],
+      options: defaultOptions,
     };
 
     let response = await request(app)
@@ -43,8 +45,21 @@ describe("Test Question lifecycle", () => {
     expect(response.status).toBe(400);
   });
 
+  it("should return 400 for duplicate data", async () => {
+    const questionData: MCQRequest = {
+      question: "What is the capital of France?",
+      options: [...defaultOptions, { option: "Paris", isCorrect: true }],
+    };
+
+    const response = await request(app)
+      .post("/api/v1/question")
+      .send(questionData);
+
+    expect(response.status).toBe(400);
+  });
+
   it("should retrieve all questions", async () => {
-    const response = await request(app).get("/api/v1/question");
+    const response = await request(app).get("/api/v1/questions");
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty("response");
     expect(Array.isArray(response.body.response)).toBe(true);
@@ -112,7 +127,9 @@ describe("Test Question lifecycle", () => {
   });
 
   it("should throw error for invalid id when deleting the question", async () => {
-    const response = await request(app).delete(`/api/v1/question${questionId}`);
+    const response = await request(app).delete(
+      `/api/v1/question/${questionId}`
+    );
     expect(response.status).toBe(400);
   });
 });
