@@ -72,7 +72,7 @@ const generateQuestionUsingAI = async (prompt: string) => {
     const json = JSON.parse(text);
     return json;
   } catch (err) {
-    console.log(err);
+    console.error(err);
   }
 };
 
