@@ -39,5 +39,9 @@ API_KEY=<YOUR GOOGLE API KEY>
 
 ## Installation
 
-`npm install` \
-`npm start`
+`npm install` : Install all the dependencies \
+`npm start` : Start the server
+
+## Tests
+
+To run the test use command `npm test`
